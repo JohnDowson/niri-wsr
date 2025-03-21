@@ -1,0 +1,9 @@
+[package]
+name = "niri-wsr"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ctrlc = "3.4.5"
+libc = "0.2.169"
+niri-ipc = "25.2"
