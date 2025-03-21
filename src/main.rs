@@ -57,7 +57,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
             }
             Event::WindowOpenedOrChanged { window } => {
-                let (Some(workspace_id), Some(mut title)) = (window.workspace_id, window.title)
+                let (Some(workspace_id), Some(mut title)) =
+                    (window.workspace_id, window.app_id.or(window.title))
                 else {
                     continue;
                 };
