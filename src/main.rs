@@ -1,12 +1,14 @@
 use std::{collections::BTreeMap, error::Error, sync::mpsc::channel, thread};
 
-use niri_ipc::{socket::Socket, Action, Event, Request, WorkspaceReferenceArg};
+use niri_ipc::{socket::Socket, Action, Event, Request, Response, WorkspaceReferenceArg};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let stream = {
-        let sock = Socket::connect()?;
-        let (resp, mut stream) = sock.send(Request::EventStream)?;
-        resp?;
+        let mut sock = Socket::connect()?;
+        let Response::Handled = sock.send(Request::EventStream)?? else {
+            return Err("Unexpected response".into());
+        };
+        let mut stream = sock.read_events();
 
         let (tx, rx) = channel();
 
@@ -25,6 +27,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         rx
     };
 
+    let mut sock = Socket::connect()?;
     let mut state: BTreeMap<u64, BTreeMap<u64, String>> = BTreeMap::new();
 
     while let Ok(Some(ev)) = stream.recv() {
@@ -78,12 +81,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             _ => (),
         }
 
-        set_workspace_names(&state)?;
+        set_workspace_names(&mut sock, &state)?;
     }
 
     for workspace in state.keys() {
-        let sender = Socket::connect()?;
-        let (resp, _) = sender.send(Request::Action(Action::UnsetWorkspaceName {
+        let resp = sock.send(Request::Action(Action::UnsetWorkspaceName {
             reference: Some(WorkspaceReferenceArg::Id(*workspace)),
         }))?;
         resp?;
@@ -92,21 +94,20 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn set_workspace_names(state: &BTreeMap<u64, BTreeMap<u64, String>>) -> Result<(), Box<dyn Error>> {
+fn set_workspace_names(sock: &mut Socket, state: &BTreeMap<u64, BTreeMap<u64, String>>) -> Result<(), Box<dyn Error>> {
     for (workspace, windows) in state.iter() {
         let name = windows
             .values()
             .map(|s| s.as_str())
             .collect::<Vec<_>>()
             .join("|");
-        let sender = Socket::connect()?;
 
-        let (resp, _) = if name.is_empty() {
-            sender.send(Request::Action(Action::UnsetWorkspaceName {
+        let resp = if name.is_empty() {
+            sock.send(Request::Action(Action::UnsetWorkspaceName {
                 reference: Some(WorkspaceReferenceArg::Id(*workspace)),
             }))?
         } else {
-            sender.send(Request::Action(Action::SetWorkspaceName {
+            sock.send(Request::Action(Action::SetWorkspaceName {
                 name,
                 workspace: Some(WorkspaceReferenceArg::Id(*workspace)),
             }))?

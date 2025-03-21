@@ -1,0 +1,11 @@
+[Unit]
+Description=niri workspace autorenamer
+PartOf=graphical-session.target
+
+[Service]
+ExecStart=/usr/bin/niri-wsr
+ExecReload=kill -SIGUSR2 $MAINPID
+Restart=on-failure
+
+[Install]
+WantedBy=graphical-session.target

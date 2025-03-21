@@ -1,0 +1,27 @@
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Archive
+        uses: thedoctor0/zip-release@0.7.5
+        with:
+          type: "tar"
+          filename: "code.tar.gz"
+          command: "touch code.tar.gz"
+          exclusions: "*.git* .jj PKGBUILD code.tar.gz"
+      - name: Insert SHA512
+        run: awk -i inplace "{gsub(\"{{SHA512}}\", \"\\\"$(sha512sum code.tar.gz | cut -d' ' -f1)\\\"\", \$0); print \$0}" PKGBUILD
+      - name: Upload
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "code.tar.gz,PKGBUILD"
+          omitBody: true
