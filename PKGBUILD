@@ -1,7 +1,7 @@
 # Maintainer: Ivan Chinenov <ichinenov@hjvt.dev>
 
 pkgname=niri-wsr
-pkgver=25.8.0
+pkgver=25.11.0
 pkgrel=1
 pkgdesc="Automatic workspace renamer for niri inspired by i3-wsr"
 url="https://github.com/JohnDowson/$pkgname"
